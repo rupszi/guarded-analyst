@@ -1,4 +1,17 @@
-# Retail data analysis assistant
+# Guarded Analyst
+
+[![CI](https://github.com/rupszi/guarded-analyst/actions/workflows/ci.yml/badge.svg)](https://github.com/rupszi/guarded-analyst/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/rupszi/guarded-analyst/graph/badge.svg)](https://codecov.io/gh/rupszi/guarded-analyst)
+![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Checked with pyright](https://microsoft.github.io/pyright/img/pyright_badge.svg)](https://microsoft.github.io/pyright/)
+
+A chat agent that answers retail sales questions from BigQuery, with guardrails the model cannot override: every query is checked and scoped in code, personal data is never returned, and deleting anything needs a human yes.
+
+![A 23-second session: a user with limited access asks for the top products and is told the figures cover only their brands; a request for email addresses is refused; deleting a report asks for confirmation; /stats shows the metrics](docs/demo.gif)
+
+*A real session against BigQuery and Gemini. The waits for the model are cut out, so each answer follows its question directly.*
 
 A command-line chat assistant for a retail company's executives. Ask about sales, customers and products in plain language; it queries the BigQuery `thelook_ecommerce` dataset, explains what it finds, and writes reports with action items.
 
@@ -18,8 +31,8 @@ What the prototype does:
 You need [uv](https://docs.astral.sh/uv/), a free Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey), and a Google Cloud project for BigQuery. The free tier is enough: a query scans about 10 MB at most, against 1 TB free per month.
 
 ```bash
-git clone https://github.com/rupszi/tech-demo-retail-05.git
-cd tech-demo-retail-05
+git clone https://github.com/rupszi/guarded-analyst.git
+cd guarded-analyst
 uv sync
 cp .env.example .env
 ```
@@ -165,6 +178,21 @@ flowchart LR
 - **confirm_delete** pauses until the user answers, deletes exactly what was shown, and reports the outcome itself. If the same request also asked a question, the model answers it afterwards.
 
 The model writes SQL and prose. Everything that matters for safety is decided by code the model cannot influence. The full explanation, the production architecture and the reasoning are in [docs/DESIGN.md](docs/DESIGN.md).
+
+## How I'd take this to production
+
+This is a prototype: one process, one conversation at a time, a command line. Turning it into a service with a single `/chat` endpoint is mostly about state, identity and operations, not about rewriting the agent. The safety layer, the tools and the model interface are plain Python and move over as they are.
+
+| Step | What | Rough size |
+|---|---|---|
+| Decisions and API | Identity provider and claim format; `POST /chat` with JWT checks, streaming and a reply type for confirmations; Cloud Run | 2.5 weeks |
+| State | Postgres for conversations, reports and the audit log (a delete and its audit entry in one transaction); one turn at a time per conversation; confirmations that expire and belong to one user | 2 weeks |
+| Data and model | Read-only BigQuery service account with views that leave out personal data; Vertex AI instead of an API key; per-user limits; Model Armor and Sensitive Data Protection; embedding search for the analysts' examples | 2.5 weeks |
+| Observability | OpenTelemetry traces, metrics and alerts; keep scrubbed model inputs and outputs with the trace, which the prototype's trace lacks | 1.5 weeks |
+| Quality and security | An evaluation set run against the real model before every release; load and outage tests; prompt-injection and cross-user tests; a penetration test | 2 weeks |
+| Delivery and rollout | Terraform, CI/CD with canary and rollback, runbooks, an executive pilot, then gradual rollout | 3.5 weeks |
+
+That is about 14 person-weeks, my estimate. What I would look at first, because I know where it is weak: the model's sentences can overstate what its own numbers show (the example run names the cases), the pattern scrubber is only a backstop behind the SQL gate, and conversation state lives in memory. The services, the data flow and the reasoning are in [docs/DESIGN.md](docs/DESIGN.md#7-running-it-in-production).
 
 ## Configuration
 
