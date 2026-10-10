@@ -379,7 +379,7 @@ BREAKS = [
     (
         "tool results go back in the order they finished",
         "src/retail_agent/llm/gemini.py",
-        "                last.parts.sort(key=lambda p: order.get(p.function_response.id, len(order)))",
+        '                last.parts.sort(\n                    key=lambda p: order.get(\n                        getattr(p.function_response, "id", None) or "", len(order)\n                    )\n                )',
         "                pass",
     ),
     # ---- per-question state

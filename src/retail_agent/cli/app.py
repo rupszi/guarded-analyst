@@ -10,6 +10,7 @@ import argparse
 import sys
 import uuid
 from dataclasses import replace
+from typing import Any
 
 from rich.console import Console
 from rich.markdown import Markdown
@@ -82,7 +83,9 @@ def main(argv: list[str] | None = None) -> int:
     # This stands in for a verified token: the profile fixes who the user is and what they may
     # see for the whole session, and nothing typed into the chat can change it.
     profile = profiles[user]
-    status = {"current": None}  # the spinner on screen, if any, so steps can update its text
+    status: dict[str, Any] = {
+        "current": None
+    }  # the spinner on screen, if any, so steps can update its text
 
     def show_progress(step: str) -> None:
         label = _PROGRESS.get(step.split(":")[0])

@@ -1,5 +1,5 @@
 [project]
-name = "retail-agent"
+name = "guarded-analyst"
 version = "0.1.0"
 description = "Data analysis chat assistant for retail executives"
 readme = "README.md"
@@ -25,6 +25,8 @@ retail-agent = "retail_agent.cli.app:main"
 dev = [
     "pytest>=8",
     "ruff>=0.6",
+    "pyright>=1.1.390",
+    "pytest-cov>=5",
 ]
 
 [build-system]
@@ -51,3 +53,20 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+
+[tool.pyright]
+include = ["src"]
+pythonVersion = "3.12"
+typeCheckingMode = "basic"
+# The graph state is a TypedDict(total=False) on purpose: each step fills in its own part.
+reportTypedDictNotRequiredAccess = "none"
+# sqlglot documents `exp.Expression` but its package does not declare the re-export.
+reportPrivateImportUsage = "none"
+
+[tool.coverage.run]
+source = ["src/retail_agent"]
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+skip_covered = true

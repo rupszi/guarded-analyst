@@ -53,10 +53,11 @@ class ChatSession:
         self.reports = reports or ReportStore(settings.reports_db_path)
         self.tracer = tracer or Tracer(settings.trace_dir, self.conversation_id, profile.user_id)
         if hasattr(llm, "on_failure"):  # make model retries, fallbacks and waits visible
-            llm.on_failure = lambda model, attempt, error: self.tracer.event(
+            hooks: Any = llm  # a ResilientLLM; the model interface itself has no hooks
+            hooks.on_failure = lambda model, attempt, error: self.tracer.event(
                 "llm_retry", model, attempt=attempt, error=str(error)[:200]
             )
-            llm.on_wait = lambda seconds: self.tracer.event(
+            hooks.on_wait = lambda seconds: self.tracer.event(
                 "llm_wait", "rate_limit", seconds=round(seconds)
             )
         # The agent is given the gateway, never the backend: there is no path to the data that
@@ -79,7 +80,7 @@ class ChatSession:
         # The thread id is the key under which the checkpointer keeps this conversation's state.
         # The recursion limit is a backstop only: it is set above what the limit on model calls
         # allows (two graph steps per call), so that limit is always the one that stops a turn.
-        self._config = {
+        self._config: Any = {
             "configurable": {"thread_id": self.conversation_id},
             "recursion_limit": 2 * settings.max_llm_calls + 10,
         }

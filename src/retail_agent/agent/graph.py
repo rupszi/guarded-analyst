@@ -322,6 +322,7 @@ def build_graph(deps: AgentDeps):
         by the model: it is exact, and it cannot be lost to a model outage after the delete.
         """
         pending = state["pending_delete"]
+        assert pending is not None  # the tools step sets it before routing to this step
         decision = interrupt({"action": "delete_reports", "reports": pending["reports"]})
         # Only an explicit yes from the interface counts. Anything else leaves the reports alone.
         approved = isinstance(decision, dict) and decision.get("approved") is True

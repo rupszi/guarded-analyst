@@ -85,7 +85,7 @@ def validate_query(
     return ValidatedQuery(tree.sql(dialect="bigquery", comments=False), table_names, limit)
 
 
-def _parse_single_select(sql: str) -> exp.Expression:
+def _parse_single_select(sql: str) -> exp.Query:
     try:
         statements = [s for s in sqlglot.parse(sql, read="bigquery") if s is not None]
     except SqlglotError as e:
@@ -110,7 +110,7 @@ def _parse_single_select(sql: str) -> exp.Expression:
     return tree
 
 
-def _reject_forbidden_nodes(tree: exp.Expression) -> None:
+def _reject_forbidden_nodes(tree: exp.Query) -> None:
     for node in tree.walk():
         # A write hidden anywhere, for example inside a WITH clause.
         if isinstance(node, _WRITE_NODES):
@@ -155,7 +155,7 @@ def _forbidden_function(name: str) -> SqlRejected:
     return SqlRejected("forbidden_function", f"Function {name} is not allowed.", False)
 
 
-def _real_tables(tree: exp.Expression, dataset: str) -> list[exp.Table]:
+def _real_tables(tree: exp.Query, dataset: str) -> list[exp.Table]:
     """Return every reference to a real table, after checking it is on the allow-list.
 
     A table reference is only treated as a WITH name when scope analysis proves that name is
@@ -213,7 +213,7 @@ def _real_tables(tree: exp.Expression, dataset: str) -> list[exp.Table]:
     return real_tables
 
 
-def _reject_pii_columns(tree: exp.Expression) -> None:
+def _reject_pii_columns(tree: exp.Query) -> None:
     """Early, friendly rejection. The hard guarantee is that scoping never selects these columns."""
     # Every identifier is checked, not only column references: a personal data column can also
     # be named in USING (...) or as a field of a row value.
@@ -227,7 +227,7 @@ def _reject_pii_columns(tree: exp.Expression) -> None:
         )
 
 
-def _enforce_limit(tree: exp.Expression, max_rows: int) -> tuple[exp.Expression, int]:
+def _enforce_limit(tree: exp.Query, max_rows: int) -> tuple[exp.Query, int]:
     """Keep a smaller literal LIMIT; replace a missing, larger or computed one."""
     limit = tree.args.get("limit")
     value = limit.expression if limit is not None else None

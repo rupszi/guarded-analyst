@@ -82,8 +82,12 @@ class ReportStore:
             "VALUES (?, ?, ?, ?, ?)",
             (owner, conversation_id, title, content, _now()),
         )
-        self.log(owner, "save", [cursor.lastrowid], title)
-        return self.get(owner, cursor.lastrowid)
+        report_id = cursor.lastrowid
+        assert report_id is not None  # an INSERT always has a row id
+        self.log(owner, "save", [report_id], title)
+        report = self.get(owner, report_id)
+        assert report is not None
+        return report
 
     def list(self, owner: str) -> list[Report]:
         return self._reports("owner = ?", [owner])

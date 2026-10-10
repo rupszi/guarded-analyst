@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 import time
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 from retail_agent.config import Settings
 from retail_agent.data.base import DataError
@@ -207,7 +207,7 @@ class Toolbox:
     def _payload(self, result: QueryResult) -> dict:
         """The result as the model sees it: at most `rows_to_model` rows, and a note if cut."""
         shown = result.frame.head(self._settings.rows_to_model)
-        table = json.loads(shown.to_json(orient="split", index=False, date_format="iso"))
+        table = json.loads(cast(str, shown.to_json(orient="split", index=False, date_format="iso")))
         payload = {
             "columns": table["columns"],
             "rows": table["data"],

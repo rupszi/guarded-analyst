@@ -215,8 +215,10 @@ def generate(
         if status in ("Shipped", "Complete", "Returned"):
             shipped = created + timedelta(days=rng.randint(1, 3))
         if status in ("Complete", "Returned"):
+            assert shipped is not None
             delivered = shipped + timedelta(days=rng.randint(2, 5))
         if status == "Returned":
+            assert delivered is not None
             returned = delivered + timedelta(days=rng.randint(1, 10))
         orders.append(
             {
@@ -238,6 +240,7 @@ def generate(
             # Planted pattern 2: about a third of completed Driftline items come back.
             if p["brand"] == "Driftline" and status == "Complete" and rng.random() < 0.35:
                 item_status = "Returned"
+                assert delivered is not None  # a Complete order was delivered
                 item_returned = delivered + timedelta(days=rng.randint(1, 10))
             items.append(
                 {

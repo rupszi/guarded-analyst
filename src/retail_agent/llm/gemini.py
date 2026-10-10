@@ -108,6 +108,7 @@ class GeminiLLM:
             )
             refused = any(word in reason.upper() for word in _REFUSED)
             raise LLMError(f"{self.name}: empty response ({reason})", transient=not refused)
+        assert candidate is not None and candidate.content is not None  # there is text or calls
         usage = response.usage_metadata
         return LLMResponse(
             text=text,
@@ -190,7 +191,11 @@ def _to_contents(messages: Sequence[Message]) -> list[types.Content]:
                 last.parts.append(part)
                 # Results go back in the order the calls were made, whatever order they finished
                 # in: a delete is answered only after the user has decided.
-                last.parts.sort(key=lambda p: order.get(p.function_response.id, len(order)))
+                last.parts.sort(
+                    key=lambda p: order.get(
+                        getattr(p.function_response, "id", None) or "", len(order)
+                    )
+                )
             else:
                 contents.append(types.Content(role="user", parts=[part]))
     return contents
